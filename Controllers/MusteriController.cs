@@ -39,7 +39,7 @@ namespace FirinWebApi.Controllers
 
         //GET: api/Musteri/Get
         [HttpGet("Get")]
-        [ServiceFilter(typeof(AdminFilter))]
+        //[ServiceFilter(typeof(AdminFilter))]
         public async Task<IActionResult> Get()
         {
 

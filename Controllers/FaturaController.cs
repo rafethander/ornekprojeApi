@@ -40,6 +40,19 @@ namespace FirinWebApi.Controllers
             
         }
 
+        //POST: api/Fatura/DirektAdd
+        [HttpPost("DirektAdd")]
+        [ServiceFilter(typeof(AdminFilter))]
+        public async Task<IActionResult> DirektAdd([FromBody]IrsaliyeAddDto model)
+        {
+            var result = await _faturaService.DirektAdd(model);
+            if (result.Message != ApiResultMessages.Ok)
+                return BadRequest(result);
+
+            return Ok(result);
+
+        }
+
 
         //POST: api/Fatura/Get
         [HttpPost("Get")]

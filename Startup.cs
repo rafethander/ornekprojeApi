@@ -80,9 +80,11 @@ namespace FirinWebApi
                 opt.AddPolicy(izinVerdigimKaynaklar,
                     builder =>
                     {
-                        builder.WithOrigins("https://azurendemeapp.azurewebsites.net")
-                                                    .AllowAnyHeader()  //   eski tur tarayýcýlarda 
-                                                    .AllowAnyMethod();//   falan bu 2sý lazým olabýlýyor            
+                        builder.WithOrigins("http://localhost:4200")
+                                                    .AllowAnyHeader()
+                                                    .AllowAnyMethod();
+                                                     //   eski tur tarayýcýlarda 
+                                                    //   falan bu 2sý lazým olabýlýyor            
                     });
             });
         }

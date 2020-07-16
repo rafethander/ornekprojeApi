@@ -20,8 +20,8 @@ namespace FirinWebApi
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseStartup<Startup>()
-                        .UseUrls("http://localhost:4200");
+                    webBuilder.UseStartup<Startup>();
+                        //.UseUrls("http://localhost:4200");
                 });
     }
 }

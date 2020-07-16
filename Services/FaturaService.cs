@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FirinWebApi.Database.Models.Enum;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace FirinWebApi.Services
 {
@@ -16,8 +17,9 @@ namespace FirinWebApi.Services
         Task<ApiResult> Add(FaturaAddDto model);
         Task<IEnumerable<FaturaGetDto>> Get(FaturaGetDtoModel model);
         Task<ApiResult> Delete(int faturaNo);
-        Task<ICollection<FaturaGetWithFaturaNoDto>> GetWithFaturaNo(int faturaNo); 
+        Task<ICollection<FaturaGetWithFaturaNoDto>> GetWithFaturaNo(int faturaNo);
         Task<ApiResult> Update(FaturaUpdateDto model);
+        Task<ApiResult> DirektAdd(IrsaliyeAddDto modelIrsaliye);
     }
     public class FaturaService : IFaturaService
     {
@@ -229,34 +231,124 @@ namespace FirinWebApi.Services
                                 join i in _context.Irsaliye on f.FaturaId equals i.Fatura.FaturaId
                                 join Mi in _context.MusteriIrsaliye on i.IrsaliyeId equals Mi.IrsaliyeId
                                 join Su in _context.SatilanUrunSatis on i.IrsaliyeId equals Su.IrsaliyeId
-                                where (f.Silindi == false && f.FaturaNo == faturaNo && i.Fatura.FaturaNo==faturaNo)
+                                where (f.Silindi == false && f.FaturaNo == faturaNo && i.Fatura.FaturaNo == faturaNo)
                                 select new FaturaGetWithFaturaNoDto
                                 {
-                                    FaturaId=f.FaturaId,
-                                    FaturaNo=f.FaturaNo,
-                                    Durum=f.Durum,
-                                    Tarih=f.Tarih,
+                                    FaturaId = f.FaturaId,
+                                    FaturaNo = f.FaturaNo,
+                                    Durum = f.Durum,
+                                    Tarih = f.Tarih,
                                     TarihString = f.TarihString,
-                                    ToplamTutar =f.ToplamTutar,
+                                    ToplamTutar = f.ToplamTutar,
 
-                                    MusteriId=Mi.Musteri.MusteriId,
-                                    MusteriAdi=Mi.Musteri.MusteriAdi,
+                                    MusteriId = Mi.Musteri.MusteriId,
+                                    MusteriAdi = Mi.Musteri.MusteriAdi,
 
-                                    IrsaliyeId=i.IrsaliyeId,
-                                    IrsaliyeNo=i.IrsaliyeNo,
-                                    IrsaliyeTarih=i.Tarih,
-                                    IrsaliyeTarihString=i.TarihString,
-                                    UrunAdi=Su.SatilanUrun.UrunAdi,
-                                    Fiyat=Su.SatilanUrun.Fiyat,
-                                    Kdv=Su.SatilanUrun.Kdv,
-                                    Miktar=Su.Miktar,
-                                    KdvTutar=Su.KdvTutar,
-                                    Tutar=Su.Tutar,
-                                   
-                                    
+                                    IrsaliyeId = i.IrsaliyeId,
+                                    IrsaliyeNo = i.IrsaliyeNo,
+                                    IrsaliyeTarih = i.Tarih,
+                                    IrsaliyeTarihString = i.TarihString,
+                                    UrunAdi = Su.SatilanUrun.UrunAdi,
+                                    Fiyat = Su.SatilanUrun.Fiyat,
+                                    Kdv = Su.SatilanUrun.Kdv,
+                                    Miktar = Su.Miktar,
+                                    KdvTutar = Su.KdvTutar,
+                                    Tutar = Su.Tutar,
+
+
                                 }).ToListAsync();
 
             return entity;
+        }
+
+        public async Task<ApiResult> DirektAdd(IrsaliyeAddDto modelIrsaliye)
+        {
+            // Direkt Fatura Ekleme işlemini İrsaliye Ekleme ve Fatura Ekleme yi aynı anda uygulandıgı bir durum olarak varsayıp tek bir irsaliye uzerınden bir fatura kesiyorum. İrsaliyeNo diye FrontEnd den gelen Fatura Numarası olarak değerlendirilicek İrsaliye Numaraları ise FrontEndden gelen değerlere 10milyon eklenerek Veritabanında kolaylıkla ayrılması ve çakışmaları engellenecek. 
+
+            for (var i = 0; i < modelIrsaliye.SatilanUrunId.Count; i++)
+            {
+                var entitySatilanUrunSatis = new SatilanUrunSatis();
+                var entityIrsaliye = new Irsaliye();
+                entityIrsaliye = new Irsaliye
+                {
+                    IrsaliyeId = Guid.NewGuid(),
+                    Olusturuldu = DateTime.UtcNow
+                };
+
+                entityIrsaliye.IrsaliyeNo = 10000000 + modelIrsaliye.IrsaliyeNo;
+                entityIrsaliye.Tarih = modelIrsaliye.Tarih;
+
+                //SatilanUrunSatis
+                var entitySatilanUrun = await _context.SatilanUrun.Where(x => !x.Silindi && x.SatilanUrunId == modelIrsaliye.SatilanUrunId[i]).FirstOrDefaultAsync();
+                entitySatilanUrunSatis.SatilanUrunSatisId = Guid.NewGuid();
+                entitySatilanUrunSatis.SatilanUrun = entitySatilanUrun;
+                entitySatilanUrunSatis.SatilanUrunId = modelIrsaliye.SatilanUrunId[i];
+                entitySatilanUrunSatis.Miktar = modelIrsaliye.Miktar[i];
+                entitySatilanUrunSatis.KdvTutar = modelIrsaliye.KdvTutar[i];
+                entitySatilanUrunSatis.Tutar = modelIrsaliye.Tutar[i];
+                entitySatilanUrunSatis.IrsaliyeNo = modelIrsaliye.IrsaliyeNo;
+                entitySatilanUrunSatis.IrsaliyeId = entityIrsaliye.IrsaliyeId;
+                entitySatilanUrunSatis.Irsaliye = entityIrsaliye;
+
+                //MusteriIrsaliye
+                var entityMusteriIrsaliye = new MusteriIrsaliye
+                {
+                    MusteriIrsaliyeId = Guid.NewGuid(),
+                    Olusturuldu = DateTime.UtcNow
+                };
+
+                var entityMusteri = await _context.Musteri.Where(x => !x.Silindi && x.MusteriId == modelIrsaliye.MusteriId).FirstOrDefaultAsync();
+
+                entityMusteriIrsaliye.MusteriId = modelIrsaliye.MusteriId;
+                entityMusteriIrsaliye.Musteri = entityMusteri;
+                entityMusteriIrsaliye.IrsaliyeId = entityIrsaliye.IrsaliyeId;
+                entityMusteriIrsaliye.Irsaliye = entityIrsaliye;
+
+
+                await _context.MusteriIrsaliye.AddAsync(entityMusteriIrsaliye);
+                await _context.SatilanUrunSatis.AddAsync(entitySatilanUrunSatis);
+                await _context.Irsaliye.AddAsync(entityIrsaliye);
+                await _context.SaveChangesAsync();
+            }
+
+            if (modelIrsaliye.IrsaliyeNo == 0) // Yukarıda Belirttıgım gıbı FaturaNo burası.
+                return new ApiResult { Data = modelIrsaliye.IrsaliyeNo, Message = ApiResultMessages.INE001 };
+
+            if (await _context.Fatura.AnyAsync(x => !x.Silindi && x.FaturaNo == modelIrsaliye.IrsaliyeNo))
+                return new ApiResult { Data = modelIrsaliye.IrsaliyeNo, Message = ApiResultMessages.FNW001 };
+
+
+
+            var entityFatura = new Fatura()
+            {
+                FaturaId = Guid.NewGuid(),
+                Olusturuldu = DateTime.UtcNow,
+                Durum = DurumEnum.KayıtEdildi
+            };
+            entityFatura.FaturaNo = modelIrsaliye.IrsaliyeNo;
+            entityFatura.Tarih = modelIrsaliye.Tarih;
+            entityFatura.ToplamTutar = modelIrsaliye.Tutar[0];
+
+            await _context.Fatura.AddAsync(entityFatura);
+
+
+
+            var entityIrsaliyeTablosuTarafi = await _context.Irsaliye.Where(x => !x.Silindi && x.IrsaliyeNo == (10000000 + modelIrsaliye.IrsaliyeNo)).ToListAsync();
+
+            foreach (var irsaliye in entityIrsaliyeTablosuTarafi)
+            {
+                irsaliye.Fatura = entityFatura;
+                // _context.Entry<Irsaliye>(entityIrsaliye).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+            }
+            
+
+
+
+
+
+            return new ApiResult { Data = entityFatura.FaturaNo, Message = ApiResultMessages.Ok };
+
         }
     }
 }

@@ -41,7 +41,7 @@ namespace FirinWebApi.Controllers
 
 
         //PUT: api/Kullanici/Update
-        [Authorize(Roles =Role.Admin)]
+        //[Authorize(Roles =Role.Admin)]
         [HttpPut("Update")]
         public async Task<IActionResult> Update([FromBody]KullaniciUpdateDto model)
         {
@@ -54,7 +54,7 @@ namespace FirinWebApi.Controllers
         }
 
         //DELETE: api/Kullanici/Delete/id
-        [Authorize(Roles = Role.Admin)]
+        //[Authorize(Roles = Role.Admin)]
         [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -79,7 +79,8 @@ namespace FirinWebApi.Controllers
         }
 
         //GET: api/Kullanici/Get
-        [Authorize(Roles = Role.Admin)]
+        //[Authorize(Roles = Role.Admin)]
+        [AllowAnonymous]
         [HttpGet("Get")]
         public async Task<IActionResult> Get()
         {
